@@ -1,10 +1,12 @@
 import { create } from "zustand";
-import type { MusicGenerationResult, MusicGenerationStatus } from "@shared/types";
+import type { MusicGenerationResult, MusicGenerationStatus, MusicProvider, MinimaxModel } from "@shared/types";
 
 interface MusicStore {
   generations: MusicGenerationResult[];
   currentGeneration: MusicGenerationResult | null;
   isGenerating: boolean;
+  provider: MusicProvider;
+  minimaxModel: MinimaxModel;
 
   addGeneration: (generation: MusicGenerationResult) => void;
   updateGeneration: (id: string, updates: Partial<MusicGenerationResult>) => void;
@@ -12,12 +14,16 @@ interface MusicStore {
   setCurrentGeneration: (generation: MusicGenerationResult | null) => void;
   setIsGenerating: (isGenerating: boolean) => void;
   setGenerationStatus: (id: string, status: MusicGenerationStatus) => void;
+  setProvider: (provider: MusicProvider) => void;
+  setMinimaxModel: (model: MinimaxModel) => void;
 }
 
 export const useMusicStore = create<MusicStore>((set) => ({
   generations: [],
   currentGeneration: null,
   isGenerating: false,
+  provider: "suno",
+  minimaxModel: "music-2.6",
 
   addGeneration: (generation) =>
     set((state) => ({
@@ -64,4 +70,10 @@ export const useMusicStore = create<MusicStore>((set) => ({
             : state.currentGeneration,
       };
     }),
+
+  setProvider: (provider) =>
+    set({ provider }),
+
+  setMinimaxModel: (minimaxModel) =>
+    set({ minimaxModel }),
 }));

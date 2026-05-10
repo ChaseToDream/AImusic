@@ -3,10 +3,20 @@
 import { useCallback, useRef } from "react";
 import { useMusicStore } from "@/stores/music-store";
 import { generateMusic, getGenerationStatus } from "@/lib/suno-api";
-import type { MusicGenerationResult } from "@shared/types";
+import type { MusicGenerationResult, MusicProvider, MinimaxModel } from "@shared/types";
 
 const POLL_INTERVAL = 3000;
 const MAX_POLL_ATTEMPTS = 120;
+
+export interface GenerationOptions {
+  makeInstrumental?: boolean;
+  model?: string;
+  provider?: MusicProvider;
+  lyrics?: string;
+  isInstrumental?: boolean;
+  lyricsOptimizer?: boolean;
+  minimaxModel?: MinimaxModel;
+}
 
 export function useMusicGeneration() {
   const {
@@ -15,6 +25,8 @@ export function useMusicGeneration() {
     addGeneration,
     updateGeneration,
     setIsGenerating,
+    provider,
+    minimaxModel,
   } = useMusicStore();
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,9 +94,14 @@ export function useMusicGeneration() {
   );
 
   const startGeneration = useCallback(
-    async (prompt: string, options?: { makeInstrumental?: boolean; model?: string }) => {
+    async (prompt: string, options?: GenerationOptions) => {
       if (isGenerating) return;
       if (!prompt.trim()) return;
+
+      const activeProvider = options?.provider || provider;
+      const activeModel = activeProvider === "minimax"
+        ? (options?.minimaxModel || minimaxModel)
+        : options?.model;
 
       setIsGenerating(true);
       stopPolling();
@@ -95,7 +112,9 @@ export function useMusicGeneration() {
         id: tempId,
         status: "pending",
         prompt: prompt.trim(),
+        lyrics: options?.lyrics,
         createdAt: Date.now(),
+        provider: activeProvider,
       };
       addGeneration(newGeneration);
 
@@ -103,15 +122,30 @@ export function useMusicGeneration() {
         const response = await generateMusic({
           prompt: prompt.trim(),
           makeInstrumental: options?.makeInstrumental,
-          model: options?.model,
+          model: activeModel,
+          provider: activeProvider,
+          lyrics: options?.lyrics,
+          isInstrumental: options?.isInstrumental,
+          lyricsOptimizer: options?.lyricsOptimizer,
         });
 
-        updateGeneration(tempId, {
-          id: response.id,
-          status: response.status,
-        });
-
-        startPolling(response.id);
+        if (activeProvider === "minimax" && response.status === "complete") {
+          updateGeneration(tempId, {
+            id: response.id,
+            status: "complete",
+            audioUrl: response.audioUrl,
+            duration: response.duration,
+            title: response.title,
+            model: activeModel,
+          });
+          setIsGenerating(false);
+        } else {
+          updateGeneration(tempId, {
+            id: response.id,
+            status: response.status,
+          });
+          startPolling(response.id);
+        }
       } catch (error) {
         updateGeneration(tempId, {
           status: "error",
@@ -120,7 +154,7 @@ export function useMusicGeneration() {
         setIsGenerating(false);
       }
     },
-    [isGenerating, addGeneration, updateGeneration, setIsGenerating, startPolling, stopPolling]
+    [isGenerating, addGeneration, updateGeneration, setIsGenerating, startPolling, stopPolling, provider, minimaxModel]
   );
 
   const cancelGeneration = useCallback(() => {
