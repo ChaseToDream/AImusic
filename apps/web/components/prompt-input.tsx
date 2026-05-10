@@ -90,7 +90,7 @@ export function PromptInput({ onSubmit, isGenerating }: PromptInputProps) {
     setLyrics("");
     setMakeInstrumental(false);
     setIsInstrumental(false);
-    setLyricsOptimizer(false);
+    setLyricsOptimizer(newProvider === "minimax");
   };
 
   return (
@@ -240,7 +240,11 @@ export function PromptInput({ onSubmit, isGenerating }: PromptInputProps) {
                 checked={isInstrumental}
                 onChange={(e) => {
                   setIsInstrumental(e.target.checked);
-                  if (e.target.checked) setLyricsOptimizer(false);
+                  if (e.target.checked) {
+                    setLyricsOptimizer(false);
+                  } else {
+                    setLyricsOptimizer(true);
+                  }
                 }}
                 className="rounded border-border"
                 disabled={isGenerating}
