@@ -10,6 +10,7 @@ import { useMusicStore } from "@/stores/music-store";
 import { Separator } from "@/components/ui/separator";
 import { Music, ExternalLink } from "lucide-react";
 import type { MusicGenerationResult } from "@shared/types";
+import type { GenerationOptions } from "@/hooks/use-music-generation";
 
 export default function HomePage() {
   const { isGenerating, currentGeneration, startGeneration, cancelGeneration } =
@@ -20,6 +21,10 @@ export default function HomePage() {
   const handleSelectGeneration = (generation: MusicGenerationResult) => {
     setSelectedId(generation.id);
     setCurrentGeneration(generation);
+  };
+
+  const handleGenerate = (prompt: string, options: GenerationOptions) => {
+    startGeneration(prompt, options);
   };
 
   const activeGeneration =
@@ -52,11 +57,11 @@ export default function HomePage() {
             创作你的AI音乐
           </h2>
           <p className="text-muted-foreground">
-            描述你想要的音乐风格、情绪和乐器，AI将为你生成独特的音乐作品
+            选择 Suno AI 或 Minimax，描述你想要的音乐风格、情绪和乐器，AI将为你生成独特的音乐作品
           </p>
         </section>
 
-        <PromptInput onSubmit={startGeneration} isGenerating={isGenerating} />
+        <PromptInput onSubmit={handleGenerate} isGenerating={isGenerating} />
 
         {activeGeneration && (
           <GenerationProgress
@@ -89,7 +94,7 @@ export default function HomePage() {
 
       <footer className="border-t py-4">
         <div className="mx-auto max-w-5xl px-4 text-center text-xs text-muted-foreground">
-          Powered by Suno AI · Built with Next.js + Tauri
+          Powered by Suno AI & Minimax · Built with Next.js + Tauri
         </div>
       </footer>
     </div>

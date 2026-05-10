@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Download, Trash2, Music } from "lucide-react";
+import { Play, Download, Trash2, Music, Sparkles } from "lucide-react";
 import { useMusicStore } from "@/stores/music-store";
 import { downloadAudio } from "@/lib/suno-api";
 import type { MusicGenerationResult } from "@shared/types";
@@ -32,7 +32,7 @@ function formatDate(timestamp: number): string {
 
 export function MusicCard({ generation, onSelect, isSelected }: MusicCardProps) {
   const { removeGeneration } = useMusicStore();
-  const { title, status, duration, prompt, createdAt, audioUrl, tags } = generation;
+  const { title, status, duration, prompt, createdAt, audioUrl, tags, provider } = generation;
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -68,6 +68,12 @@ export function MusicCard({ generation, onSelect, isSelected }: MusicCardProps) 
               <h3 className="text-sm font-medium truncate">
                 {title || "生成中..."}
               </h3>
+              {provider === "minimax" && (
+                <Badge variant="outline" className="shrink-0 text-[10px] gap-0.5 px-1.5 py-0 border-primary/30 text-primary">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  Minimax
+                </Badge>
+              )}
               {status === "complete" && (
                 <Badge variant="secondary" className="shrink-0 text-[10px]">
                   {formatTime(duration ?? 0)}
