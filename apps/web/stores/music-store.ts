@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { MusicGenerationResult, MusicGenerationStatus, MusicProvider, MinimaxModel } from "@shared/types";
 
 interface MusicStore {
@@ -7,73 +8,101 @@ interface MusicStore {
   isGenerating: boolean;
   provider: MusicProvider;
   minimaxModel: MinimaxModel;
+  theme: "light" | "dark" | "system";
 
   addGeneration: (generation: MusicGenerationResult) => void;
   updateGeneration: (id: string, updates: Partial<MusicGenerationResult>) => void;
   removeGeneration: (id: string) => void;
+  clearHistory: () => void;
   setCurrentGeneration: (generation: MusicGenerationResult | null) => void;
   setIsGenerating: (isGenerating: boolean) => void;
   setGenerationStatus: (id: string, status: MusicGenerationStatus) => void;
   setProvider: (provider: MusicProvider) => void;
   setMinimaxModel: (model: MinimaxModel) => void;
+  setTheme: (theme: "light" | "dark" | "system") => void;
 }
 
-export const useMusicStore = create<MusicStore>((set) => ({
-  generations: [],
-  currentGeneration: null,
-  isGenerating: false,
-  provider: "suno",
-  minimaxModel: "music-2.6",
+export const useMusicStore = create<MusicStore>()(
+  persist(
+    (set) => ({
+      generations: [],
+      currentGeneration: null,
+      isGenerating: false,
+      provider: "suno",
+      minimaxModel: "music-2.6",
+      theme: "system",
 
-  addGeneration: (generation) =>
-    set((state) => ({
-      generations: [generation, ...state.generations],
-      currentGeneration: generation,
-    })),
+      addGeneration: (generation) =>
+        set((state) => ({
+          generations: [generation, ...state.generations],
+          currentGeneration: generation,
+        })),
 
-  updateGeneration: (id, updates) =>
-    set((state) => ({
-      generations: state.generations.map((g) =>
-        g.id === id ? { ...g, ...updates } : g
-      ),
-      currentGeneration:
-        state.currentGeneration?.id === id
-          ? { ...state.currentGeneration, ...updates }
-          : state.currentGeneration,
-    })),
+      updateGeneration: (id, updates) =>
+        set((state) => ({
+          generations: state.generations.map((g) =>
+            g.id === id ? { ...g, ...updates } : g
+          ),
+          currentGeneration:
+            state.currentGeneration?.id === id
+              ? { ...state.currentGeneration, ...updates }
+              : state.currentGeneration,
+        })),
 
-  removeGeneration: (id) =>
-    set((state) => ({
-      generations: state.generations.filter((g) => g.id !== id),
-      currentGeneration:
-        state.currentGeneration?.id === id
-          ? null
-          : state.currentGeneration,
-    })),
+      removeGeneration: (id) =>
+        set((state) => ({
+          generations: state.generations.filter((g) => g.id !== id),
+          currentGeneration:
+            state.currentGeneration?.id === id
+              ? null
+              : state.currentGeneration,
+        })),
 
-  setCurrentGeneration: (generation) =>
-    set({ currentGeneration: generation }),
+      clearHistory: () =>
+        set((state) => ({
+          generations: state.generations.filter(
+            (g) => g.status === "pending" || g.status === "generating" || g.status === "streaming"
+          ),
+          currentGeneration: null,
+        })),
 
-  setIsGenerating: (isGenerating) =>
-    set({ isGenerating }),
+      setCurrentGeneration: (generation) =>
+        set({ currentGeneration: generation }),
 
-  setGenerationStatus: (id, status) =>
-    set((state) => {
-      const updates = { status };
-      return {
-        generations: state.generations.map((g) =>
-          g.id === id ? { ...g, ...updates } : g
-        ),
-        currentGeneration:
-          state.currentGeneration?.id === id
-            ? { ...state.currentGeneration, ...updates }
-            : state.currentGeneration,
-      };
+      setIsGenerating: (isGenerating) =>
+        set({ isGenerating }),
+
+      setGenerationStatus: (id, status) =>
+        set((state) => {
+          const updates = { status };
+          return {
+            generations: state.generations.map((g) =>
+              g.id === id ? { ...g, ...updates } : g
+            ),
+            currentGeneration:
+              state.currentGeneration?.id === id
+                ? { ...state.currentGeneration, ...updates }
+                : state.currentGeneration,
+          };
+        }),
+
+      setProvider: (provider) =>
+        set({ provider }),
+
+      setMinimaxModel: (minimaxModel) =>
+        set({ minimaxModel }),
+
+      setTheme: (theme) =>
+        set({ theme }),
     }),
-
-  setProvider: (provider) =>
-    set({ provider }),
-
-  setMinimaxModel: (minimaxModel) =>
-    set({ minimaxModel }),
-}));
+    {
+      name: "ai-music-generator",
+      partialize: (state) => ({
+        generations: state.generations,
+        provider: state.provider,
+        minimaxModel: state.minimaxModel,
+        theme: state.theme,
+      }),
+    }
+  )
+);

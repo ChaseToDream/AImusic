@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,10 @@ function getProgressValue(status: string): number {
   }
 }
 
-export function GenerationProgress({ generation, onCancel }: GenerationProgressProps) {
+export const GenerationProgress = memo(function GenerationProgress({
+  generation,
+  onCancel,
+}: GenerationProgressProps) {
   const { status, prompt, error } = generation;
   const progress = getProgressValue(status);
   const message = STATUS_MESSAGES[status] || "处理中...";
@@ -81,4 +85,4 @@ export function GenerationProgress({ generation, onCancel }: GenerationProgressP
       </CardContent>
     </Card>
   );
-}
+});
