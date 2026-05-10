@@ -1,0 +1,103 @@
+# ==================== Dependencies ====================
+node_modules/
+.pnpm-store/
+.pnpm-debug.log
+package-lock.json
+yarn.lock
+
+# ==================== Build Outputs ====================
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# ==================== Environment ====================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# ==================== Logs ====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==================== Cache ====================
+.cache/
+.turbo/
+.eslintcache
+.parcel-cache/
+
+# ==================== Testing ====================
+coverage/
+.nyc_output/
+
+# ==================== IDE / Editor ====================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ==================== OS Generated ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==================== Next.js ====================
+.next/
+vercel.json
+.vercel
+
+# ==================== Tauri ====================
+# Tauri build outputs
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/WixTools/
+apps/desktop/src-tauri/Cargo.lock
+
+# Tauri generated files
+apps/desktop/src-tauri/gen/
+
+# ==================== Audio Files (Generated) ====================
+# 用户下载的音乐文件（开发时生成）
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.m4a
+
+# 示例音频除外
+!assets/samples/*.mp3
+!assets/samples/*.wav
+
+# ==================== Temporary Files ====================
+temp/
+tmp/
+*.tmp
+
+# ==================== Debug ====================
+debug/
+.debug/
+
+# ==================== Local Config ====================
+*.local.json
+config.local.*
+
+# ==================== Backup Files ====================
+*.bak
+*.backup
+*.old
+
+# ======================= other =======================
+.trae/
+docs/
