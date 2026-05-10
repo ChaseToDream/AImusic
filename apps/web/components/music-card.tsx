@@ -1,17 +1,20 @@
 "use client";
 
+import { memo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Download, Trash2, Music, Sparkles } from "lucide-react";
+import { Play, Download, Trash2, Music, Sparkles, RotateCcw, Copy } from "lucide-react";
 import { useMusicStore } from "@/stores/music-store";
 import { downloadAudio } from "@/lib/suno-api";
+import { useToast } from "@/components/toast";
 import type { MusicGenerationResult } from "@shared/types";
 
 interface MusicCardProps {
   generation: MusicGenerationResult;
   onSelect: (generation: MusicGenerationResult) => void;
   isSelected: boolean;
+  onRetry?: (generation: MusicGenerationResult) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -30,21 +33,55 @@ function formatDate(timestamp: number): string {
   });
 }
 
-export function MusicCard({ generation, onSelect, isSelected }: MusicCardProps) {
+export const MusicCard = memo(function MusicCard({
+  generation,
+  onSelect,
+  isSelected,
+  onRetry,
+}: MusicCardProps) {
   const { removeGeneration } = useMusicStore();
+  const { toast } = useToast();
   const { title, status, duration, prompt, createdAt, audioUrl, tags, provider } = generation;
 
-  const handleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!audioUrl || !title) return;
-    const filename = `${title.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "_")}.mp3`;
-    downloadAudio(audioUrl, filename).catch(console.error);
-  };
+  const handleDownload = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!audioUrl || !title) return;
+      const filename = `${title.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "_")}.mp3`;
+      downloadAudio(audioUrl, filename).catch(() => {
+        toast("下载失败", "error");
+      });
+    },
+    [audioUrl, title, toast]
+  );
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    removeGeneration(generation.id);
-  };
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      removeGeneration(generation.id);
+      toast("已删除", "info");
+    },
+    [generation.id, removeGeneration, toast]
+  );
+
+  const handleCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(prompt).then(
+        () => toast("提示词已复制", "success"),
+        () => toast("复制失败", "error")
+      );
+    },
+    [prompt, toast]
+  );
+
+  const handleRetry = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onRetry?.(generation);
+    },
+    [generation, onRetry]
+  );
 
   return (
     <Card
@@ -106,6 +143,26 @@ export function MusicCard({ generation, onSelect, isSelected }: MusicCardProps) 
           </div>
 
           <div className="flex shrink-0 gap-1">
+            {status === "error" && onRetry && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRetry}
+                className="h-7 w-7 text-orange-500 hover:text-orange-600"
+                title="重试"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCopy}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              title="复制提示词"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
             {status === "complete" && audioUrl && (
               <Button
                 variant="ghost"
@@ -131,4 +188,4 @@ export function MusicCard({ generation, onSelect, isSelected }: MusicCardProps) 
       </CardContent>
     </Card>
   );
-}
+});

@@ -5,8 +5,10 @@ import { useMusicStore } from "@/stores/music-store";
 import { generateMusic, getGenerationStatus } from "@/lib/suno-api";
 import type { MusicGenerationResult, MusicProvider, MinimaxModel } from "@shared/types";
 
-const POLL_INTERVAL = 3000;
+const INITIAL_POLL_INTERVAL = 2000;
+const MAX_POLL_INTERVAL = 10000;
 const MAX_POLL_ATTEMPTS = 120;
+const POLL_BACKOFF_FACTOR = 1.2;
 
 export interface GenerationOptions {
   makeInstrumental?: boolean;
@@ -31,6 +33,7 @@ export function useMusicGeneration() {
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCountRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -38,6 +41,13 @@ export function useMusicGeneration() {
       pollTimerRef.current = null;
     }
     pollCountRef.current = 0;
+  }, []);
+
+  const cancelPendingRequests = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
   }, []);
 
   const startPolling = useCallback(
@@ -54,6 +64,11 @@ export function useMusicGeneration() {
           setIsGenerating(false);
           return;
         }
+
+        const interval = Math.min(
+          INITIAL_POLL_INTERVAL * Math.pow(POLL_BACKOFF_FACTOR, pollCountRef.current - 1),
+          MAX_POLL_INTERVAL
+        );
 
         getGenerationStatus(id)
           .then((data) => {
@@ -75,9 +90,10 @@ export function useMusicGeneration() {
               return;
             }
 
-            pollTimerRef.current = setTimeout(poll, POLL_INTERVAL);
+            pollTimerRef.current = setTimeout(poll, interval);
           })
           .catch((error) => {
+            if (error instanceof DOMException && error.name === "AbortError") return;
             console.error("Poll error:", error);
             updateGeneration(id, {
               status: "error",
@@ -105,7 +121,11 @@ export function useMusicGeneration() {
 
       setIsGenerating(true);
       stopPolling();
+      cancelPendingRequests();
       pollCountRef.current = 0;
+
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
 
       const tempId = `temp-${Date.now()}`;
       const newGeneration: MusicGenerationResult = {
@@ -129,6 +149,8 @@ export function useMusicGeneration() {
           lyricsOptimizer: options?.lyricsOptimizer,
         });
 
+        if (abortController.signal.aborted) return;
+
         if (activeProvider === "minimax" && response.status === "complete") {
           updateGeneration(tempId, {
             id: response.id,
@@ -147,6 +169,7 @@ export function useMusicGeneration() {
           startPolling(response.id);
         }
       } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
         updateGeneration(tempId, {
           status: "error",
           error: error instanceof Error ? error.message : "生成请求失败",
@@ -154,11 +177,12 @@ export function useMusicGeneration() {
         setIsGenerating(false);
       }
     },
-    [isGenerating, addGeneration, updateGeneration, setIsGenerating, startPolling, stopPolling, provider, minimaxModel]
+    [isGenerating, addGeneration, updateGeneration, setIsGenerating, startPolling, stopPolling, cancelPendingRequests, provider, minimaxModel]
   );
 
   const cancelGeneration = useCallback(() => {
     stopPolling();
+    cancelPendingRequests();
     setIsGenerating(false);
     if (currentGeneration && currentGeneration.status !== "complete") {
       updateGeneration(currentGeneration.id, {
@@ -166,7 +190,7 @@ export function useMusicGeneration() {
         error: "已取消",
       });
     }
-  }, [stopPolling, setIsGenerating, currentGeneration, updateGeneration]);
+  }, [stopPolling, cancelPendingRequests, setIsGenerating, currentGeneration, updateGeneration]);
 
   return {
     isGenerating,
