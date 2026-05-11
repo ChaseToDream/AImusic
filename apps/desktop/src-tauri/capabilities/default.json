@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-utils/schema.json",
+  "identifier": "default",
+  "description": "Default capabilities for AI Music Generator",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "dialog:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
+    "fs:default",
+    "fs:allow-write-file",
+    "fs:allow-read-file",
+    "shell:default",
+    "shell:allow-open",
+    "process:default",
+    "clipboard-manager:default",
+    "clipboard-manager:allow-write"
+  ]
+}
